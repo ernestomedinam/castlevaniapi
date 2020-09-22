@@ -1,6 +1,9 @@
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, timezone
 import json
+import os
+from base64 import b64encode
+from werkzeug.security import generate_password_hash, check_password_hash
 
 db = SQLAlchemy()
 
@@ -10,14 +13,26 @@ class Donante(db.Model):
     cedula = db.Column(db.String(14), unique=True)
     nombre = db.Column(db.String(80), nullable=False)
     apellido = db.Column(db.String(80), nullable=False)
+    password_hash = db.Column(db.String(250), nullable=False)
+    salt = db.Column(db.String(16), nullable=False)
 
     perfil = db.relationship("Perfil", backref="donante", uselist=False)
 
-    def __init__(self, cedula, nombre, apellido):
+    def __init__(self, cedula, nombre, apellido, password):
         """ crea y devuelve una instancia de esta clase """
         self.cedula = cedula
         self.nombre = nombre
         self.apellido = apellido
+        self.salt = b64encode(os.urandom(4)).decode("utf-8")
+        self.set_password(password)
+
+    def set_password(self, password):
+        """ hash y guarda """
+        self.password_hash = generate_password_hash(f"{password}{self.salt}")
+
+    def check_password(self, password):
+        """ checks if match """
+        return check_password_hash(self.password_hash, f"{password}{self.salt}")
 
     def __str__(self):
         return f"\t{self.cedula:10} ->  {self.nombre_completo}"
@@ -58,7 +73,7 @@ class Donante(db.Model):
             json.dump(donantes_serializados, donante_archivo)
 
     @classmethod
-    def registrarse(cls, cedula, nombre, apellido):
+    def registrarse(cls, cedula, nombre, apellido, password):
         """
             normaliza insumos nombre y apellido,
             crea un objeto de la clase Donante con
@@ -67,7 +82,8 @@ class Donante(db.Model):
         nuevo_donante = cls(
             cedula,
             nombre.lower().capitalize(),
-            apellido.lower().capitalize()
+            apellido.lower().capitalize(),
+            password
         )
         return nuevo_donante
 

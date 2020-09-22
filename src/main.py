@@ -9,14 +9,17 @@ from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from admin import setup_admin
 from models import db, Donante, Perfil, Muestra, Visita
+from flask_jwt_simple import create_jwt, JWTManager, get_jwt_identity, jwt_required
 #from models import Person
 
 app = Flask(__name__)
 app.url_map.strict_slashes = False
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DB_CONNECTION_STRING')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config["JWT_SECRET_KEY"] = os.environ.get("APP_JWT_SECRET")
 MIGRATE = Migrate(app, db)
 db.init_app(app)
+jwt = JWTManager(app)
 CORS(app)
 setup_admin(app)
 
@@ -29,6 +32,43 @@ def handle_invalid_usage(error):
 @app.route('/')
 def sitemap():
     return generate_sitemap(app)
+
+@app.route("/ingresar", methods=["POST"])
+def manejar_ingreso():
+    """
+        POST: revisamos si el usuario existe. Si existe, revisamos
+        si el password que envía es correcto. ¿Cómo sabemos si el 
+        usuario existe? Aquí vamos a recibir en el request un diccionario
+        con cédula y password.
+    """
+    input_data = request.json
+    if (
+        "cedula" not in input_data or
+        "password" not in input_data    
+    ):
+        return jsonify({
+            "resultado": "Lo siento, persona, envíe los insumos correctos..."
+        }), 400
+    else:
+        usuario = Donante.query.filter_by(
+            cedula=input_data["cedula"]
+        ).one_or_none()
+        if usuario is None:
+            return jsonify({
+                "resultado": "En verdad el usuario no existe, pero le voy a decir que el password no es válido"
+            }), 400
+        else:
+            if usuario.check_password(input_data["password"]):
+                # success
+                token = create_jwt(identity=usuario.id)
+                return jsonify({
+                    "token": token,
+                    "cedula": usuario.cedula
+                }), 200
+            else:
+                return jsonify({
+                    "resultado": "El usuario sí existe y el password no sirve..."
+                }), 400
 
 # endpoints recurso donantes
 @app.route("/donantes", methods=["GET", "POST"])
@@ -64,7 +104,8 @@ def cr_donantes():
         if (
             "cedula" not in insumos_donante or
             "nombre" not in insumos_donante or
-            "apellido" not in insumos_donante
+            "apellido" not in insumos_donante or
+            "password" not in insumos_donante
         ):
             return jsonify({
                 "resultado": "revise las propiedades de su solicitud"
@@ -74,6 +115,7 @@ def cr_donantes():
             insumos_donante["nombre"] == "" or
             insumos_donante["apellido"] == "" or
             insumos_donante["cedula"] == "" or
+            insumos_donante["password"] == "" or
             len(str(insumos_donante["cedula"])) > 14
         ):
             return jsonify({
@@ -83,7 +125,8 @@ def cr_donantes():
         nuevo_donante = Donante.registrarse(
             insumos_donante["cedula"],
             insumos_donante["nombre"],
-            insumos_donante["apellido"]
+            insumos_donante["apellido"],
+            insumos_donante["password"]
         )
         #   agregar a la sesión de base de datos (sqlalchemy) y hacer commit de la transacción
         db.session.add(nuevo_donante)
@@ -100,6 +143,7 @@ def cr_donantes():
             }), 500
 
 @app.route("/donantes/<donante_id>", methods=["GET", "PATCH", "DELETE"])
+@jwt_required
 def crud_donantes(donante_id):
     """
         GET: devolver el detalle de un donante específico
@@ -107,13 +151,18 @@ def crud_donantes(donante_id):
             guardar en base de datos y devolver el detalle
         DELETE: eliminar el donante específico y devolver 204 
     """
+    usuario_id_jwt = get_jwt_identity()
+    usuario = Donante.query.get(usuario_id_jwt) 
     # crear una variable y asignar el donante específico
     donante = Donante.query.get(donante_id)
     # verificar si el donante con id donante_id existe
     if isinstance(donante, Donante):
         if request.method == "GET":
             # devolver el donante serializado y jsonificado. Y 200
-            return jsonify(donante.serializar()), 200
+            # return jsonify(donante.serializar()), 200
+            return jsonify({
+                "resultado": f"ajá, esto fue {usuario.nombre_completo} fastidiando la paciencia..."
+            })
         elif request.method == "PATCH":
             # recuperar diccionario con insumos del body del request
             diccionario = request.get_json()
