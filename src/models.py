@@ -130,15 +130,17 @@ class Perfil(db.Model):
         self.donante_id = donante_id
 
     @classmethod
-    def crear(cls, donante_cedula):
+    def crear(cls, donante_id):
         """ crea y devuelve una instancia de Perfil de donante """
-        return cls(donante_cedula)
+        return cls(donante_id)
         
     def actualizar_perfil(self, diccionario):
         """ actualiza propiedades del perfil según el contenido del diccionario """
         for (key, value) in diccionario.items():
-            if hasattr(self, key):
-                self[key] = value
+            if hasattr(self, key) and key != "fecha_nacimiento":
+                setattr(self, key, value)
+            elif key == "fecha_nacimiento":
+                self.fecha_nacimiento = datetime.strptime(value, "%d/%m/%Y")
         return True
 
 # clase para una visita de un donante

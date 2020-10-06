@@ -1,0 +1,49 @@
+{
+    "donantes": [
+        {
+            "nombre": "Ernesto",
+            "apellido": "Medina",
+            "cedula": "V16714541",
+            "password": "pass123",
+            "perfil": {
+                "hepatitis": false,
+                "VIH": false,
+                "telefono": "+584143026661",
+                "fecha_nacimiento": "02/03/1984",
+                "email": "ernesto.m.medina.m@gmail.com",
+                "RH_positivo": true,
+                "sangre_tipo": "O"
+            }
+        },
+        {
+            "nombre": "Deimian",
+            "apellido": "Vasquez",
+            "cedula": "V20143561",
+            "password": "deimianRockstar66",
+            "perfil": {
+                "hepatitis": false,
+                "VIH": false,
+                "telefono": "+584146256661",
+                "fecha_nacimiento": "16/05/1986",
+                "email": "deimian@gmail.com",
+                "RH_positivo": true,
+                "sangre_tipo": "AB"
+            }
+        },
+        {
+            "nombre": "Yesman",
+            "apellido": "Utrera",
+            "cedula": "V17100823",
+            "password": "ClaroQueYesman1983",
+            "perfil": {
+                "hepatitis": false,
+                "VIH": false,
+                "telefono": "+584140096661",
+                "fecha_nacimiento": "14/03/1983",
+                "email": "yesman@gmail.com",
+                "RH_positivo": true,
+                "sangre_tipo": "O"
+            }
+        }
+    ]
+}
